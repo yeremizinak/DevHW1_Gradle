@@ -1,0 +1,72 @@
+plugins {
+    id 'java'
+}
+
+group 'org.example'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.2'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
+
+}
+
+task customFatJar(type: Jar) {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    manifest {
+        attributes "Main-Class": "org.example.Main"
+    }
+    archiveFileName = 'myname.jar'
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    with jar
+
+    doLast {
+        System.out.println("Jar is completed!")
+    }
+}
+
+tasks.register("removeFolder"){
+    delete 'dist'
+    doLast {
+        System.out.println("Folder DIST successfully deleted!")
+    }
+}
+
+tasks.register("createFolder"){
+    doFirst {
+        System.out.println("Start to create folder DIST")
+    }
+    mkdir 'dist'
+    doLast {
+        System.out.println("Folder DIST successfully created!")
+    }
+}
+
+task copyJar(type: Copy){
+    from 'build/libs/myname.jar'
+    into 'dist'
+}
+
+task runWithExecJarExecutable(type: Exec){
+    group = "Execution"
+    description = "Run the output executable jar with ExecTask"
+    commandLine "java", "-jar", "dist/myname.jar"
+}
+
+removeFolder.dependsOn(customFatJar)
+createFolder.dependsOn(removeFolder)
+copyJar.dependsOn(createFolder)
+runWithExecJarExecutable.dependsOn(copyJar)
+
+
+
+test {
+    useJUnitPlatform()
+}
